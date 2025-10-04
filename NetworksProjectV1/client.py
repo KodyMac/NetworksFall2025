@@ -1,4 +1,5 @@
 import socket
+import sys
 
 SERVER_IP = "127.0.0.1"
 PORT = 18983
@@ -22,7 +23,9 @@ def main():
             print(data, end="")
 
             #if end is sent
-            if "Goodbye!" in data:
+            if "Goodbye" in data:
+                s.close()
+                #sys.exit(0)
                 break
 
 if __name__=="__main__":

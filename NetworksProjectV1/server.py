@@ -1,8 +1,9 @@
 import socket
-import threading
+#import threading
+import os
 
 HOST = "127.0.0.1"
-Port = 18983
+PORT = 18983
 
 USER_FILE = "users.txt"
 
@@ -12,11 +13,13 @@ def load_users():
     #read users from txt file into a dict. Return dict{"Tom": "Tom11",...}
     users = {}
     try: 
-        with open(USER_FILE, "r") as f:
+        with open(USER_FILE, "r", encoding="utf-8") as f:
             for line in f:
-                parts = line.strip().split(",")
+                line = line.strip().replace("(", "").replace(")", "")
+                parts = [p.strip() for p in line.split(",")]
                 if len(parts) == 2:
-                    users[parts[0]] = parts[1]
+                    user, pwd = parts
+                    users[user]=pwd
     except FileNotFoundError:
         pass #if fnf, start empty
     return users
@@ -52,7 +55,7 @@ def client_action(conn, addr, users):
                     user, pwd = parts[1], parts[2]
                     if user in users and users[user] == pwd:
                         logged_user = user
-                        conn.sendall(f"Login successful. Welcom {user}!\n".encode())
+                        conn.sendall(f"Login successful. Welcome {user}!\n".encode())
                     else:
                         conn.sendall(b"Invalid username or password.\n")
 
@@ -81,8 +84,11 @@ def client_action(conn, addr, users):
             
             #logout
             elif command == "logout":
-                conn.sendall(f"Goodbye, {logged_user}!\n")
-                break
+                conn.sendall(f"Goodbye, {logged_user}!\n".encode())
+                #break
+                conn.close()
+                os._exit(0)
+                return
 
             else:
                 conn.sendall(b"Unknown command.\n")
@@ -94,6 +100,21 @@ def client_action(conn, addr, users):
     print(f"[DISCONNECTED] {addr}")
 
 def main():
+    users = load_users()
+    print("[STARTING SERVER]")
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind((HOST,PORT))
+        s.listen(1)
+        print(f"[LISTENING] Server running on {HOST}:{PORT}")
+
+        while True:
+            conn,addr = s.accept()
+            client_action(conn,addr,users)
+
+
+if __name__=="__main__":
+    main()
 
 """#make socket
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
